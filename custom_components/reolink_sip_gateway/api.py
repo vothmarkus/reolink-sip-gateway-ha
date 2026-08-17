@@ -4,17 +4,20 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from collections.abc import AsyncIterator, Mapping
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
 
-from .model import GatewayInfo, GatewayStatus, InvalidPayloadError
+from .const import GATEWAY_API_PATH, GATEWAY_API_PORT
+from .model import GatewayDTMFEvent, GatewayInfo, GatewayStatus, InvalidPayloadError
 
 REQUEST_TIMEOUT = ClientTimeout(total=10)
 STREAM_TIMEOUT = ClientTimeout(total=None, connect=10, sock_connect=10, sock_read=90)
 MAX_SSE_LINE_BYTES = 1024 * 1024
+_HOST_LABEL = re.compile(r"^(?!-)[a-z0-9-]{1,63}(?<!-)$")
 
 
 class GatewayAPIError(Exception):
@@ -90,8 +93,8 @@ class GatewayAPIClient:
         """End the active call; the endpoint is idempotent."""
         await self._async_request_json("POST", "/calls/hangup", {202, 204})
 
-    async def async_stream_status(self) -> AsyncIterator[GatewayStatus]:
-        """Yield complete status snapshots from the SSE endpoint."""
+    async def async_stream_events(self) -> AsyncIterator[GatewayStatus | GatewayDTMFEvent]:
+        """Yield validated status snapshots and transient DTMF events."""
         headers = {**self._headers, "Accept": "text/event-stream"}
         try:
             async with self._session.get(
@@ -114,8 +117,8 @@ class GatewayAPIClient:
                         raise GatewayProtocolError("event stream is not valid UTF-8") from err
 
                     if not line:
-                        if data_lines and event_type in (None, "status"):
-                            yield self._parse_sse_data("\n".join(data_lines))
+                        if data_lines and event_type in (None, "status", "dtmf"):
+                            yield self._parse_sse_data(event_type, "\n".join(data_lines))
                         event_type = None
                         data_lines.clear()
                         continue
@@ -186,13 +189,20 @@ class GatewayAPIClient:
             raise GatewayForbiddenError(message)
         raise GatewayCommandError(code, message, status)
 
-    def _parse_sse_data(self, data: str) -> GatewayStatus:
+    def _parse_sse_data(
+        self, event_type: str | None, data: str
+    ) -> GatewayStatus | GatewayDTMFEvent:
         try:
             payload = json.loads(data)
         except json.JSONDecodeError as err:
             raise GatewayProtocolError("event stream returned invalid JSON") from err
         if not isinstance(payload, Mapping):
             raise GatewayProtocolError("event data must be a JSON object")
+        if event_type == "dtmf":
+            try:
+                return GatewayDTMFEvent.from_payload(payload)
+            except InvalidPayloadError as err:
+                raise GatewayProtocolError(str(err)) from err
         return self._parse_status(payload)
 
     @staticmethod
@@ -207,7 +217,7 @@ class GatewayAPIClient:
 
 
 def normalize_api_url(value: str) -> str:
-    """Normalize a user-entered URL to the versioned API root."""
+    """Normalize a stored/internal URL to the versioned API root."""
     raw = value.strip()
     if not raw:
         raise ValueError("API URL must not be empty")
@@ -228,3 +238,31 @@ def normalize_api_url(value: str) -> str:
         raise ValueError("API URL must end in /api/v1")
 
     return urlunsplit((parsed.scheme.lower(), parsed.netloc, path, "", ""))
+
+
+def normalize_gateway_host(value: str) -> str:
+    """Validate and normalize a hostname entered in the config flow."""
+    host = value.strip().lower().rstrip(".")
+    if not host or len(host) > 253:
+        raise ValueError("gateway hostname is empty or too long")
+    if any(character in host for character in ":/?#@") or any(
+        character.isspace() for character in host
+    ):
+        raise ValueError("enter a hostname without scheme, port, or path")
+    if not all(_HOST_LABEL.fullmatch(label) for label in host.split(".")):
+        raise ValueError("gateway hostname is invalid")
+    return host
+
+
+def api_url_from_host(value: str) -> str:
+    """Build the fixed local API root from an add-on hostname."""
+    host = normalize_gateway_host(value)
+    return f"http://{host}:{GATEWAY_API_PORT}{GATEWAY_API_PATH}"
+
+
+def gateway_host_from_api_url(value: str) -> str:
+    """Extract a hostname from a stored v0.1.0 API URL."""
+    parsed = urlsplit(normalize_api_url(value))
+    if parsed.hostname is None:
+        raise ValueError("stored API URL has no hostname")
+    return normalize_gateway_host(parsed.hostname)

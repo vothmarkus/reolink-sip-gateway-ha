@@ -3,17 +3,18 @@
 Diese benutzerdefinierte Integration bindet die lokale API der **Reolink SIP
 Gateway App** in Home Assistant ein. Sie zeigt Anrufzustand und anrufende Nummer
 an und stellt die beiden vereinbarten Bedienelemente **Testanruf** und
-**Auflegen** bereit.
+**Auflegen** bereit. Ab Version 1.0 übergibt sie empfangene DTMF-Tastendrücke als
+reine Home-Assistant-Ereignisse an Automationen.
 
 > Community-Projekt: Dieses Repository ist weder mit Reolink noch mit dem
 > Home-Assistant-Projekt verbunden und wird von diesen nicht unterstützt.
 
 ## Voraussetzungen
 
-- Reolink SIP Gateway App **0.9.0 oder neuer**
+- Reolink SIP Gateway App **1.0.0 oder neuer**
 - Home Assistant **2025.1 oder neuer**
 - Netzwerkzugriff von Home Assistant auf die lokale Gateway-API
-- API-Adresse und Zugriffstoken von der Ingress-Seite der App
+- Add-on-Hostname und Zugriffstoken von der Ingress-Seite der App
 
 Die Integration verändert keine SIP-, Audio- oder Reolink-Konfiguration. Sie
 nutzt ausschließlich den versionierten Vertrag unter `/api/v1`.
@@ -35,6 +36,51 @@ letzte Anrufdauer, Codec und letzte eingehende Nummer als Attribute. Die
 Auflegen-Schaltfläche ist nur während eines Anrufs verfügbar; der Testanruf nur,
 wenn das Gateway den Befehl annehmen kann.
 
+## DTMF-Ereignis
+
+Für jeden vollständig empfangenen RFC-4733-Tastendruck löst die Integration
+genau dieses Home-Assistant-Ereignis aus:
+
+`reolink_sip_gateway_dtmf`
+
+Seine Schnittstelle besteht ausschließlich aus folgenden Ereignisdaten:
+
+| Feld | Typ | Bedeutung |
+| --- | --- | --- |
+| `digit` | String | `0`–`9`, `*`, `#` oder `A`–`D` |
+| `duration_ms` | Integer | vom SIP-Endgerät gemeldete Tastendauer in Millisekunden |
+| `call_direction` | String | `incoming` oder `outgoing` |
+| `remote_number` | String | exakt normalisierte Gegenstelle: eingehender Anrufer oder konfiguriertes ausgehendes SIP-Ziel |
+| `call_id` | String | SIP-Dialog-ID zur sicheren Trennung mehrerer Anrufe |
+| `received_at` | String | Empfangszeitpunkt mit Zeitzone im ISO-8601-Format |
+| `instance_id` | String | dauerhafte Installations-ID des Gateways |
+
+Die Integration legt dafür keine Entity an und führt weder Ziffernfolgen noch
+PINs oder Aktionen aus. Die gesamte Bedeutung bleibt in der Home-Assistant-
+Automation. Beispiel für die Taste `5`:
+
+```yaml
+triggers:
+  - trigger: event
+    event_type: reolink_sip_gateway_dtmf
+    event_data:
+      digit: "5"
+actions:
+  - action: light.turn_on
+    target:
+      entity_id: light.flur
+```
+
+Für mehrere mehrstellige Codes, eine Bestätigung mit `#` und Rufnummernregeln
+pro Code kann die separate Integration
+[`DTMF Code`](https://github.com/vothmarkus/DTMF-Code-HA) dieses Rohereignis
+auswerten und pro Codeprofil eine eigene Ereignis-Entität bereitstellen.
+
+Nur ausgehandeltes Out-of-Band-DTMF (`telephone-event/8000`) wird erkannt;
+hörbare Töne im Audiosignal werden nicht ausgewertet. Das Ereignis ist bewusst
+flüchtig und wird nach einer unterbrochenen SSE-Verbindung nicht nachträglich
+wiederholt.
+
 ## Installation über HACS
 
 1. In HACS **Benutzerdefinierte Repositories** öffnen.
@@ -49,11 +95,13 @@ Home-Assistant-Konfiguration kopiert werden.
 
 ## Einrichtung
 
-1. Die Reolink SIP Gateway App 0.9.0 starten.
-2. Ihre Ingress-Seite öffnen und **API-Adresse** sowie **Token** kopieren.
+1. Die Reolink SIP Gateway App 1.0.0 starten.
+2. Ihre Ingress-Seite öffnen und **Add-on-Hostname** sowie **Token** kopieren.
 3. In Home Assistant **Einstellungen → Geräte & Dienste → Integration
    hinzufügen** öffnen.
-4. **Reolink SIP Gateway** auswählen und beide Werte eintragen.
+4. **Reolink SIP Gateway** auswählen und beide Werte eintragen. Aus dem
+   Hostnamen erzeugt die Integration intern automatisch
+   `http://<Hostname>:18099/api/v1`.
 
 Die Integration prüft API-Version, Fähigkeiten und die dauerhafte
 Installations-ID, bevor sie den Eintrag anlegt. Eine automatische
@@ -61,16 +109,20 @@ Supervisor-Erkennung ist in der ersten Version bewusst nicht enthalten.
 
 ## Aktualisierung und Ausfallsicherheit
 
-Statusänderungen werden über Server-Sent Events unmittelbar übertragen. Nach
+Statusänderungen und DTMF werden über Server-Sent Events unmittelbar übertragen. Nach
 einem Verbindungsabbruch verbindet sich die Integration mit begrenztem Backoff
 neu. Ein vollständiger Abruf von `/status` alle 60 Sekunden dient zusätzlich als
 Abgleich und Fallback. Langsame oder unterbrochene Ereignisverbindungen greifen
-nicht in die Echtzeit-Audioverarbeitung des Gateways ein.
+nicht in die Echtzeit-Audioverarbeitung des Gateways ein. Status ist
+rekonstruierbar; ein während der Unterbrechung empfangener Tastendruck dagegen
+absichtlich nicht.
 
 ## Sicherheit
 
 - Jeder API-Aufruf verwendet das 256-Bit-Bearer-Token der App.
 - Das Token erscheint weder in Entitätsattributen noch in Protokollmeldungen.
+- Empfangene DTMF-Ziffern können in Home-Assistant-Automationsspuren erscheinen;
+  Zugangscodes deshalb wie andere Geheimnisse behandeln.
 - Die App akzeptiert API-Verbindungen ausschließlich aus privaten, lokalen oder
   Link-Local-Netzen.
 - Bei geändertem Token startet Home Assistant einen Ablauf zur erneuten

@@ -18,8 +18,8 @@ from .api import (
     GatewayForbiddenError,
     GatewayProtocolError,
 )
-from .const import DOMAIN, POLL_INTERVAL
-from .model import GatewayInfo, GatewayStatus
+from .const import DOMAIN, EVENT_DTMF, POLL_INTERVAL
+from .model import GatewayDTMFEvent, GatewayInfo, GatewayStatus
 
 _LOGGER = logging.getLogger(__name__)
 _RECONNECT_DELAYS = (1, 2, 5, 10, 30)
@@ -76,10 +76,14 @@ class GatewayCoordinator(DataUpdateCoordinator[GatewayStatus]):
         failures = 0
         while not self._stop_event.is_set():
             try:
-                async for snapshot in self.api.async_stream_status():
+                async for event in self.api.async_stream_events():
                     failures = 0
                     if self._stop_event.is_set():
                         return
+                    if isinstance(event, GatewayDTMFEvent):
+                        self._fire_dtmf_event(event)
+                        continue
+                    snapshot = event
                     if (
                         self.data is not None
                         and snapshot.gateway.started_at == self.data.gateway.started_at
@@ -104,3 +108,9 @@ class GatewayCoordinator(DataUpdateCoordinator[GatewayStatus]):
             delay = _RECONNECT_DELAYS[min(failures - 1, len(_RECONNECT_DELAYS) - 1)]
             with suppress(TimeoutError):
                 await asyncio.wait_for(self._stop_event.wait(), timeout=delay)
+
+    def _fire_dtmf_event(self, event: GatewayDTMFEvent) -> None:
+        """Validate gateway identity and fire the public Home Assistant event."""
+        if event.instance_id != self.info.instance_id:
+            raise GatewayProtocolError("gateway event identity changed")
+        self.hass.bus.async_fire(EVENT_DTMF, event.home_assistant_event_data())

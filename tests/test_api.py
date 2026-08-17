@@ -14,7 +14,10 @@ from custom_components.reolink_sip_gateway.api import (
     GatewayAuthenticationError,
     GatewayCommandError,
     GatewayProtocolError,
+    api_url_from_host,
+    gateway_host_from_api_url,
     normalize_api_url,
+    normalize_gateway_host,
 )
 
 
@@ -94,12 +97,56 @@ def test_normalize_api_url_rejects_invalid_values(raw):
         normalize_api_url(raw)
 
 
+@pytest.mark.parametrize(
+    ("raw", "normalized"),
+    [
+        (
+            " 1C33278A-Reolink-SIP-Gateway ",
+            "1c33278a-reolink-sip-gateway",
+        ),
+        ("ha.home.", "ha.home"),
+        ("127.0.0.1", "127.0.0.1"),
+    ],
+)
+def test_normalize_gateway_host(raw, normalized):
+    assert normalize_gateway_host(raw) == normalized
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "",
+        "http://addon",
+        "addon:18099",
+        "addon/api/v1",
+        "addon_name",
+        "-addon",
+        "addon..local",
+    ],
+)
+def test_normalize_gateway_host_rejects_urls_ports_and_invalid_names(raw):
+    with pytest.raises(ValueError):
+        normalize_gateway_host(raw)
+
+
+def test_hostname_builds_fixed_internal_api_url():
+    host = "1c33278a-reolink-sip-gateway"
+    assert api_url_from_host(host) == f"http://{host}:18099/api/v1"
+
+
+def test_stored_v010_url_is_presented_as_hostname():
+    assert (
+        gateway_host_from_api_url("http://homeassistant.local:18099/api/v1")
+        == "homeassistant.local"
+    )
+
+
 def test_get_info_uses_bearer_token(info_payload):
     async def run_test() -> None:
         session = FakeSession(FakeResponse(200, info_payload))
         client = GatewayAPIClient(session, "http://ha.local:18099", "secret")
         info = await client.async_get_info()
-        assert info.gateway_version == "0.9.0"
+        assert info.gateway_version == "1.0.0"
         method, url, kwargs = session.calls[0]
         assert method == "GET"
         assert url == "http://ha.local:18099/api/v1/info"
@@ -155,9 +202,10 @@ def test_info_http_error_is_reported_as_protocol_error():
     asyncio.run(run_test())
 
 
-def test_sse_status_event(status_payload):
+def test_sse_status_and_dtmf_events(status_payload, dtmf_payload):
     async def run_test() -> None:
-        data = json.dumps(status_payload, separators=(",", ":")).encode()
+        status_data = json.dumps(status_payload, separators=(",", ":")).encode()
+        dtmf_data = json.dumps(dtmf_payload, separators=(",", ":")).encode()
         session = FakeSession(
             FakeResponse(
                 200,
@@ -165,17 +213,26 @@ def test_sse_status_event(status_payload):
                     b": keepalive\n",
                     b"event: status\n",
                     b"id: 7\n",
-                    b"data: " + data + b"\n",
+                    b"data: " + status_data + b"\n",
+                    b"\n",
+                    b"event: dtmf\n",
+                    b"data: " + dtmf_data + b"\n",
                     b"\n",
                 ],
             )
         )
         client = GatewayAPIClient(session, "http://ha.local:18099", "secret")
-        stream = client.async_stream_status()
+        stream = client.async_stream_events()
         snapshot = await anext(stream)
+        dtmf = await anext(stream)
         await stream.aclose()
         assert snapshot.revision == 7
         assert snapshot.call.last_caller_number == "+4912345"
+        assert dtmf.digit == "#"
+        assert dtmf.duration_ms == 120
+        assert dtmf.remote_number == "**620"
+        assert dtmf.call_id == "call-123@example.org"
+        assert dtmf.instance_id == "12345678-1234-5678-9234-567812345678"
         assert session.calls[0][2]["headers"]["Accept"] == "text/event-stream"
 
     asyncio.run(run_test())

@@ -13,12 +13,13 @@ def info_payload() -> dict[str, Any]:
     """Return a valid /info response."""
     return {
         "api_version": 1,
-        "gateway_version": "0.9.0",
+        "gateway_version": "1.0.0",
         "instance_id": "12345678-1234-5678-9234-567812345678",
         "name": "Reolink SIP Gateway",
         "capabilities": [
             "call_status",
             "caller_number",
+            "dtmf_events",
             "events",
             "hangup",
             "test_call",
@@ -34,7 +35,7 @@ def status_payload() -> dict[str, Any]:
         "revision": 7,
         "updated_at": "2026-08-17T10:30:00Z",
         "gateway": {
-            "version": "0.9.0",
+            "version": "1.0.0",
             "state": "idle",
             "started_at": "2026-08-17T09:00:00Z",
             "home_assistant_connected": True,
@@ -66,6 +67,21 @@ def status_payload() -> dict[str, Any]:
             "test_call_available": True,
             "hangup_available": False,
         },
+    }
+
+
+@pytest.fixture
+def dtmf_payload() -> dict[str, Any]:
+    """Return a valid transient DTMF SSE payload."""
+    return {
+        "api_version": 1,
+        "digit": "#",
+        "duration_ms": 120,
+        "call_direction": "incoming",
+        "remote_number": "**620",
+        "call_id": "call-123@example.org",
+        "received_at": "2026-08-17T10:30:01Z",
+        "instance_id": "12345678-1234-5678-9234-567812345678",
     }
 
 
