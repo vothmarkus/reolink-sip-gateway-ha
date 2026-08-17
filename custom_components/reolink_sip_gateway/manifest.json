@@ -1,0 +1,13 @@
+{
+  "domain": "reolink_sip_gateway",
+  "name": "Reolink SIP Gateway",
+  "codeowners": ["@vothmarkus"],
+  "config_flow": true,
+  "documentation": "https://github.com/vothmarkus/reolink-sip-gateway-ha",
+  "integration_type": "device",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/vothmarkus/reolink-sip-gateway-ha/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}
+
