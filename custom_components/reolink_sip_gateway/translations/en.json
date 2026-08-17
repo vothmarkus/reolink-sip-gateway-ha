@@ -1,0 +1,86 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect Reolink SIP Gateway",
+        "description": "Copy the API address and token from the app's Ingress page.",
+        "data": {
+          "api_url": "API address",
+          "token": "Access token"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Reolink SIP Gateway",
+        "description": "Update the API address or access token.",
+        "data": {
+          "api_url": "API address",
+          "token": "Access token"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Update access token",
+        "description": "The gateway rejected the stored access token. Copy the current token from the app's Ingress page.",
+        "data": {
+          "token": "Access token"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not connect to the gateway.",
+      "forbidden": "The gateway rejected this network connection. The API is only available from private or local networks.",
+      "invalid_auth": "The access token is invalid.",
+      "invalid_url": "Enter the complete API address ending in /api/v1.",
+      "unsupported_api": "The gateway API is incompatible or does not provide all required capabilities. Reolink SIP Gateway 0.9.0 or newer is required.",
+      "unknown": "An unexpected error occurred."
+    },
+    "abort": {
+      "already_configured": "This gateway is already configured.",
+      "reauth_successful": "The access token was updated successfully.",
+      "reconfigure_successful": "The gateway connection was updated successfully."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Status",
+        "state": {
+          "bereit": "Ready",
+          "eingehend": "Incoming",
+          "ausgehend": "Outgoing",
+          "verbunden": "Connected",
+          "fehler": "Error"
+        },
+        "state_attributes": {
+          "sip_registered": {"name": "SIP registered"},
+          "direction": {"name": "Call direction"},
+          "duration_seconds": {"name": "Call duration (seconds)"},
+          "codec": {"name": "Codec"},
+          "last_incoming_number": {"name": "Last incoming number"},
+          "last_error": {"name": "Last gateway error"},
+          "last_registration_error": {"name": "Last SIP registration error"}
+        }
+      },
+      "caller_number": {
+        "name": "Caller number",
+        "state_attributes": {
+          "current": {"name": "Current caller"},
+          "last_call_ended_at": {"name": "Last call ended"}
+        }
+      }
+    },
+    "button": {
+      "test_call": {"name": "Test call"},
+      "hangup": {"name": "Hang up"}
+    }
+  },
+  "exceptions": {
+    "call_busy": {"message": "Another call is already active."},
+    "cannot_connect": {"message": "Could not connect to the Reolink SIP Gateway."},
+    "command_failed": {"message": "The gateway rejected the command: {message}"},
+    "forbidden": {"message": "The gateway rejected this network connection."},
+    "gateway_unavailable": {"message": "The gateway is not ready for this command."},
+    "invalid_auth": {"message": "The gateway rejected the stored access token."},
+    "invalid_response": {"message": "The gateway returned an invalid response."},
+    "sip_unavailable": {"message": "SIP is not registered, so a test call cannot be started."}
+  }
+}

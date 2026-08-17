@@ -1,0 +1,86 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Reolink SIP Gateway verbinden",
+        "description": "Kopiere API-Adresse und Token von der Ingress-Seite der App.",
+        "data": {
+          "api_url": "API-Adresse",
+          "token": "Zugriffstoken"
+        }
+      },
+      "reconfigure": {
+        "title": "Reolink SIP Gateway neu konfigurieren",
+        "description": "Aktualisiere die API-Adresse oder das Zugriffstoken.",
+        "data": {
+          "api_url": "API-Adresse",
+          "token": "Zugriffstoken"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Zugriffstoken aktualisieren",
+        "description": "Das Gateway hat das gespeicherte Zugriffstoken abgelehnt. Kopiere das aktuelle Token von der Ingress-Seite der App.",
+        "data": {
+          "token": "Zugriffstoken"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Das Gateway konnte nicht erreicht werden.",
+      "forbidden": "Das Gateway hat diese Netzwerkverbindung abgelehnt. Die API ist nur aus privaten oder lokalen Netzen erreichbar.",
+      "invalid_auth": "Das Zugriffstoken ist ungültig.",
+      "invalid_url": "Gib die vollständige API-Adresse mit der Endung /api/v1 ein.",
+      "unsupported_api": "Die Gateway-API ist inkompatibel oder bietet nicht alle erforderlichen Funktionen. Reolink SIP Gateway 0.9.0 oder neuer ist erforderlich.",
+      "unknown": "Ein unerwarteter Fehler ist aufgetreten."
+    },
+    "abort": {
+      "already_configured": "Dieses Gateway ist bereits eingerichtet.",
+      "reauth_successful": "Das Zugriffstoken wurde erfolgreich aktualisiert.",
+      "reconfigure_successful": "Die Gateway-Verbindung wurde erfolgreich aktualisiert."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Status",
+        "state": {
+          "bereit": "Bereit",
+          "eingehend": "Eingehend",
+          "ausgehend": "Ausgehend",
+          "verbunden": "Verbunden",
+          "fehler": "Fehler"
+        },
+        "state_attributes": {
+          "sip_registered": {"name": "SIP registriert"},
+          "direction": {"name": "Anrufrichtung"},
+          "duration_seconds": {"name": "Anrufdauer (Sekunden)"},
+          "codec": {"name": "Codec"},
+          "last_incoming_number": {"name": "Letzte anrufende Nummer"},
+          "last_error": {"name": "Letzter Gateway-Fehler"},
+          "last_registration_error": {"name": "Letzter SIP-Registrierungsfehler"}
+        }
+      },
+      "caller_number": {
+        "name": "Anrufende Nummer",
+        "state_attributes": {
+          "current": {"name": "Aktueller Anruf"},
+          "last_call_ended_at": {"name": "Letztes Gespräch beendet"}
+        }
+      }
+    },
+    "button": {
+      "test_call": {"name": "Testanruf"},
+      "hangup": {"name": "Auflegen"}
+    }
+  },
+  "exceptions": {
+    "call_busy": {"message": "Es ist bereits ein anderer Anruf aktiv."},
+    "cannot_connect": {"message": "Das Reolink SIP Gateway konnte nicht erreicht werden."},
+    "command_failed": {"message": "Das Gateway hat den Befehl abgelehnt: {message}"},
+    "forbidden": {"message": "Das Gateway hat diese Netzwerkverbindung abgelehnt."},
+    "gateway_unavailable": {"message": "Das Gateway ist für diesen Befehl noch nicht bereit."},
+    "invalid_auth": {"message": "Das Gateway hat das gespeicherte Zugriffstoken abgelehnt."},
+    "invalid_response": {"message": "Das Gateway hat eine ungültige Antwort geliefert."},
+    "sip_unavailable": {"message": "SIP ist nicht registriert; deshalb kann kein Testanruf gestartet werden."}
+  }
+}
