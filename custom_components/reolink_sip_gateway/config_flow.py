@@ -17,12 +17,14 @@ from .api import (
     GatewayConnectionError,
     GatewayForbiddenError,
     GatewayProtocolError,
-    normalize_api_url,
+    api_url_from_host,
+    gateway_host_from_api_url,
 )
 from .const import (
     CONF_API_URL,
+    CONF_HOST,
     CONF_TOKEN,
-    DEFAULT_API_URL,
+    DEFAULT_HOST,
     DOMAIN,
     REQUIRED_CAPABILITIES,
 )
@@ -37,13 +39,13 @@ class ReolinkSIPGatewayConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Configure a gateway from the address and Ingress token."""
+        """Configure a gateway from the add-on hostname and Ingress token."""
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
                 data, info = await self._async_validate(user_input)
             except ValueError:
-                errors["base"] = "invalid_url"
+                errors["base"] = "invalid_host"
             except GatewayAuthenticationError:
                 errors["base"] = "invalid_auth"
             except GatewayForbiddenError:
@@ -69,14 +71,14 @@ class ReolinkSIPGatewayConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Update the API address or token."""
+        """Update the add-on hostname or token."""
         entry = self._get_reconfigure_entry()
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
                 data, info = await self._async_validate(user_input)
             except ValueError:
-                errors["base"] = "invalid_url"
+                errors["base"] = "invalid_host"
             except GatewayAuthenticationError:
                 errors["base"] = "invalid_auth"
             except GatewayForbiddenError:
@@ -115,7 +117,7 @@ class ReolinkSIPGatewayConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             candidate = {
-                CONF_API_URL: entry.data[CONF_API_URL],
+                CONF_HOST: gateway_host_from_api_url(entry.data[CONF_API_URL]),
                 CONF_TOKEN: user_input[CONF_TOKEN],
             }
             try:
@@ -148,7 +150,7 @@ class ReolinkSIPGatewayConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def _async_validate(
         self, user_input: dict[str, Any]
     ) -> tuple[dict[str, str], GatewayInfo]:
-        api_url = normalize_api_url(str(user_input[CONF_API_URL]))
+        api_url = api_url_from_host(str(user_input[CONF_HOST]))
         token = str(user_input[CONF_TOKEN]).strip()
         if not token:
             raise GatewayAuthenticationError("token is empty")
@@ -161,10 +163,16 @@ class ReolinkSIPGatewayConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 def _setup_schema(defaults: dict[str, Any] | None) -> vol.Schema:
     values = defaults or {}
-    api_url = values.get(CONF_API_URL, DEFAULT_API_URL)
+    host = values.get(CONF_HOST)
+    if host is None and CONF_API_URL in values:
+        try:
+            host = gateway_host_from_api_url(str(values[CONF_API_URL]))
+        except ValueError:
+            host = None
+    host = host or DEFAULT_HOST
     schema: dict[vol.Marker, Any] = {
-        vol.Required(CONF_API_URL, default=api_url): selector.TextSelector(
-            selector.TextSelectorConfig(type=selector.TextSelectorType.URL)
+        vol.Required(CONF_HOST, default=host): selector.TextSelector(
+            selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
         )
     }
     token = values.get(CONF_TOKEN)

@@ -6,10 +6,13 @@ DOMAIN = "reolink_sip_gateway"
 NAME = "Reolink SIP Gateway"
 
 CONF_API_URL = "api_url"
+CONF_HOST = "host"
 CONF_TOKEN = "token"
 
 API_VERSION = 1
-DEFAULT_API_URL = "http://homeassistant.local:18099/api/v1"
+GATEWAY_API_PORT = 18099
+GATEWAY_API_PATH = "/api/v1"
+DEFAULT_HOST = "1c33278a-reolink-sip-gateway"
 POLL_INTERVAL = timedelta(seconds=60)
 
 CAPABILITY_CALL_STATUS = "call_status"

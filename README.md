@@ -13,7 +13,7 @@ an und stellt die beiden vereinbarten Bedienelemente **Testanruf** und
 - Reolink SIP Gateway App **0.9.0 oder neuer**
 - Home Assistant **2025.1 oder neuer**
 - Netzwerkzugriff von Home Assistant auf die lokale Gateway-API
-- API-Adresse und Zugriffstoken von der Ingress-Seite der App
+- Add-on-Hostname und Zugriffstoken von der Ingress-Seite der App
 
 Die Integration verändert keine SIP-, Audio- oder Reolink-Konfiguration. Sie
 nutzt ausschließlich den versionierten Vertrag unter `/api/v1`.
@@ -50,10 +50,12 @@ Home-Assistant-Konfiguration kopiert werden.
 ## Einrichtung
 
 1. Die Reolink SIP Gateway App 0.9.0 starten.
-2. Ihre Ingress-Seite öffnen und **API-Adresse** sowie **Token** kopieren.
+2. Ihre Ingress-Seite öffnen und **Add-on-Hostname** sowie **Token** kopieren.
 3. In Home Assistant **Einstellungen → Geräte & Dienste → Integration
    hinzufügen** öffnen.
-4. **Reolink SIP Gateway** auswählen und beide Werte eintragen.
+4. **Reolink SIP Gateway** auswählen und beide Werte eintragen. Aus dem
+   Hostnamen erzeugt die Integration intern automatisch
+   `http://<Hostname>:18099/api/v1`.
 
 Die Integration prüft API-Version, Fähigkeiten und die dauerhafte
 Installations-ID, bevor sie den Eintrag anlegt. Eine automatische

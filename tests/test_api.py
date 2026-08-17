@@ -14,7 +14,10 @@ from custom_components.reolink_sip_gateway.api import (
     GatewayAuthenticationError,
     GatewayCommandError,
     GatewayProtocolError,
+    api_url_from_host,
+    gateway_host_from_api_url,
     normalize_api_url,
+    normalize_gateway_host,
 )
 
 
@@ -92,6 +95,50 @@ def test_normalize_api_url(raw, normalized):
 def test_normalize_api_url_rejects_invalid_values(raw):
     with pytest.raises(ValueError):
         normalize_api_url(raw)
+
+
+@pytest.mark.parametrize(
+    ("raw", "normalized"),
+    [
+        (
+            " 1C33278A-Reolink-SIP-Gateway ",
+            "1c33278a-reolink-sip-gateway",
+        ),
+        ("ha.home.", "ha.home"),
+        ("127.0.0.1", "127.0.0.1"),
+    ],
+)
+def test_normalize_gateway_host(raw, normalized):
+    assert normalize_gateway_host(raw) == normalized
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "",
+        "http://addon",
+        "addon:18099",
+        "addon/api/v1",
+        "addon_name",
+        "-addon",
+        "addon..local",
+    ],
+)
+def test_normalize_gateway_host_rejects_urls_ports_and_invalid_names(raw):
+    with pytest.raises(ValueError):
+        normalize_gateway_host(raw)
+
+
+def test_hostname_builds_fixed_internal_api_url():
+    host = "1c33278a-reolink-sip-gateway"
+    assert api_url_from_host(host) == f"http://{host}:18099/api/v1"
+
+
+def test_stored_v010_url_is_presented_as_hostname():
+    assert (
+        gateway_host_from_api_url("http://homeassistant.local:18099/api/v1")
+        == "homeassistant.local"
+    )
 
 
 def test_get_info_uses_bearer_token(info_payload):

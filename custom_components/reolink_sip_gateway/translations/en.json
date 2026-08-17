@@ -3,17 +3,17 @@
     "step": {
       "user": {
         "title": "Connect Reolink SIP Gateway",
-        "description": "Copy the API address and token from the app's Ingress page.",
+        "description": "Copy the add-on hostname and token from the app's Ingress page. The API address is built automatically.",
         "data": {
-          "api_url": "API address",
+          "host": "Add-on hostname",
           "token": "Access token"
         }
       },
       "reconfigure": {
         "title": "Reconfigure Reolink SIP Gateway",
-        "description": "Update the API address or access token.",
+        "description": "Update the add-on hostname or access token. The API address is built automatically.",
         "data": {
-          "api_url": "API address",
+          "host": "Add-on hostname",
           "token": "Access token"
         }
       },
@@ -29,7 +29,7 @@
       "cannot_connect": "Could not connect to the gateway.",
       "forbidden": "The gateway rejected this network connection. The API is only available from private or local networks.",
       "invalid_auth": "The access token is invalid.",
-      "invalid_url": "Enter the complete API address ending in /api/v1.",
+      "invalid_host": "Enter only the add-on hostname without http://, a port, or a path.",
       "unsupported_api": "The gateway API is incompatible or does not provide all required capabilities. Reolink SIP Gateway 0.9.0 or newer is required.",
       "unknown": "An unexpected error occurred."
     },
