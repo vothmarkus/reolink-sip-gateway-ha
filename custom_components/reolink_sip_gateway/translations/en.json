@@ -30,7 +30,7 @@
       "forbidden": "The gateway rejected this network connection. The API is only available from private or local networks.",
       "invalid_auth": "The access token is invalid.",
       "invalid_host": "Enter only the add-on hostname without http://, a port, or a path.",
-      "unsupported_api": "The gateway API is incompatible or does not provide all required capabilities. Reolink SIP Gateway 0.9.0 or newer is required.",
+      "unsupported_api": "The gateway API is incompatible or does not provide all required capabilities. Reolink SIP Gateway 1.0.0 or newer is required.",
       "unknown": "An unexpected error occurred."
     },
     "abort": {

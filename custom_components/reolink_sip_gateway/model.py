@@ -60,6 +60,64 @@ class GatewayInfo:
 
 
 @dataclass(frozen=True, slots=True)
+class GatewayDTMFEvent:
+    """One transient completed RFC 4733 keypress from the SIP peer."""
+
+    api_version: int
+    digit: str
+    duration_ms: int
+    call_direction: str
+    caller_number: str
+    received_at: datetime
+    instance_id: str
+
+    @classmethod
+    def from_payload(cls, payload: Mapping[str, Any]) -> GatewayDTMFEvent:
+        """Build and validate a DTMF event from the SSE data object."""
+        api_version = _required_int(payload, "api_version")
+        if api_version != API_VERSION:
+            raise InvalidPayloadError(f"unsupported API version {api_version}")
+
+        digit = _required_str(payload, "digit")
+        if digit not in frozenset("0123456789*#ABCD"):
+            raise InvalidPayloadError("digit must be one RFC 4733 DTMF key")
+
+        duration_ms = _required_non_negative_int(payload, "duration_ms")
+        if duration_ms > 8192:
+            raise InvalidPayloadError("duration_ms exceeds the RFC 4733 8 kHz limit")
+        call_direction = _required_str(payload, "call_direction")
+        if call_direction not in {"incoming", "outgoing"}:
+            raise InvalidPayloadError("call_direction must be incoming or outgoing")
+
+        instance_id = _required_str(payload, "instance_id")
+        try:
+            instance_id = str(UUID(instance_id))
+        except ValueError as err:
+            raise InvalidPayloadError("instance_id is not a UUID") from err
+
+        return cls(
+            api_version=api_version,
+            digit=digit,
+            duration_ms=duration_ms,
+            call_direction=call_direction,
+            caller_number=_required_string(payload, "caller_number"),
+            received_at=_required_datetime(payload, "received_at"),
+            instance_id=instance_id,
+        )
+
+    def home_assistant_event_data(self) -> dict[str, str | int]:
+        """Return the deliberately small public Home Assistant event contract."""
+        return {
+            "digit": self.digit,
+            "duration_ms": self.duration_ms,
+            "call_direction": self.call_direction,
+            "caller_number": self.caller_number,
+            "received_at": self.received_at.isoformat(),
+            "instance_id": self.instance_id,
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class GatewayState:
     """Gateway process status."""
 
@@ -253,6 +311,13 @@ def _required_str(payload: Mapping[str, Any], key: str) -> str:
     value = payload.get(key)
     if not isinstance(value, str) or not value:
         raise InvalidPayloadError(f"{key} must be a non-empty string")
+    return value
+
+
+def _required_string(payload: Mapping[str, Any], key: str) -> str:
+    value = payload.get(key)
+    if not isinstance(value, str):
+        raise InvalidPayloadError(f"{key} must be a string")
     return value
 
 

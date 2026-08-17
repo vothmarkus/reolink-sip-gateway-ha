@@ -12,6 +12,7 @@ from custom_components.reolink_sip_gateway.const import (
     STATUS_READY,
 )
 from custom_components.reolink_sip_gateway.model import (
+    GatewayDTMFEvent,
     GatewayInfo,
     GatewayStatus,
     InvalidPayloadError,
@@ -20,9 +21,49 @@ from custom_components.reolink_sip_gateway.model import (
 
 def test_info_validation(info_payload):
     info = GatewayInfo.from_payload(info_payload)
-    assert info.gateway_version == "0.9.0"
+    assert info.gateway_version == "1.0.0"
     assert info.instance_id == "12345678-1234-5678-9234-567812345678"
     assert "events" in info.capabilities
+    assert "dtmf_events" in info.capabilities
+
+
+def test_dtmf_event_validation_and_home_assistant_contract(dtmf_payload):
+    event = GatewayDTMFEvent.from_payload(dtmf_payload)
+    assert event.digit == "#"
+    assert event.duration_ms == 120
+    assert event.home_assistant_event_data() == {
+        "digit": "#",
+        "duration_ms": 120,
+        "call_direction": "incoming",
+        "caller_number": "**620",
+        "received_at": "2026-08-17T10:30:01+00:00",
+        "instance_id": "12345678-1234-5678-9234-567812345678",
+    }
+
+
+def test_outgoing_dtmf_event_allows_empty_caller_number(dtmf_payload):
+    dtmf_payload["call_direction"] = "outgoing"
+    dtmf_payload["caller_number"] = ""
+    assert GatewayDTMFEvent.from_payload(dtmf_payload).caller_number == ""
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("digit", "16"),
+        ("digit", "a"),
+        ("duration_ms", -1),
+        ("duration_ms", 8193),
+        ("call_direction", "idle"),
+        ("caller_number", None),
+        ("received_at", "2026-08-17T10:30:01"),
+    ],
+)
+def test_dtmf_event_rejects_invalid_payload(dtmf_payload, copy_payload, field, value):
+    payload = copy_payload(dtmf_payload)
+    payload[field] = value
+    with pytest.raises(InvalidPayloadError):
+        GatewayDTMFEvent.from_payload(payload)
 
 
 @pytest.mark.parametrize("field", ["api_version", "instance_id", "capabilities"])

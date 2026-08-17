@@ -12,7 +12,7 @@ from urllib.parse import urlsplit, urlunsplit
 from aiohttp import ClientError, ClientSession, ClientTimeout
 
 from .const import GATEWAY_API_PATH, GATEWAY_API_PORT
-from .model import GatewayInfo, GatewayStatus, InvalidPayloadError
+from .model import GatewayDTMFEvent, GatewayInfo, GatewayStatus, InvalidPayloadError
 
 REQUEST_TIMEOUT = ClientTimeout(total=10)
 STREAM_TIMEOUT = ClientTimeout(total=None, connect=10, sock_connect=10, sock_read=90)
@@ -93,8 +93,8 @@ class GatewayAPIClient:
         """End the active call; the endpoint is idempotent."""
         await self._async_request_json("POST", "/calls/hangup", {202, 204})
 
-    async def async_stream_status(self) -> AsyncIterator[GatewayStatus]:
-        """Yield complete status snapshots from the SSE endpoint."""
+    async def async_stream_events(self) -> AsyncIterator[GatewayStatus | GatewayDTMFEvent]:
+        """Yield validated status snapshots and transient DTMF events."""
         headers = {**self._headers, "Accept": "text/event-stream"}
         try:
             async with self._session.get(
@@ -117,8 +117,8 @@ class GatewayAPIClient:
                         raise GatewayProtocolError("event stream is not valid UTF-8") from err
 
                     if not line:
-                        if data_lines and event_type in (None, "status"):
-                            yield self._parse_sse_data("\n".join(data_lines))
+                        if data_lines and event_type in (None, "status", "dtmf"):
+                            yield self._parse_sse_data(event_type, "\n".join(data_lines))
                         event_type = None
                         data_lines.clear()
                         continue
@@ -189,13 +189,20 @@ class GatewayAPIClient:
             raise GatewayForbiddenError(message)
         raise GatewayCommandError(code, message, status)
 
-    def _parse_sse_data(self, data: str) -> GatewayStatus:
+    def _parse_sse_data(
+        self, event_type: str | None, data: str
+    ) -> GatewayStatus | GatewayDTMFEvent:
         try:
             payload = json.loads(data)
         except json.JSONDecodeError as err:
             raise GatewayProtocolError("event stream returned invalid JSON") from err
         if not isinstance(payload, Mapping):
             raise GatewayProtocolError("event data must be a JSON object")
+        if event_type == "dtmf":
+            try:
+                return GatewayDTMFEvent.from_payload(payload)
+            except InvalidPayloadError as err:
+                raise GatewayProtocolError(str(err)) from err
         return self._parse_status(payload)
 
     @staticmethod

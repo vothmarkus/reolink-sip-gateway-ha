@@ -17,6 +17,7 @@ POLL_INTERVAL = timedelta(seconds=60)
 
 CAPABILITY_CALL_STATUS = "call_status"
 CAPABILITY_CALLER_NUMBER = "caller_number"
+CAPABILITY_DTMF_EVENTS = "dtmf_events"
 CAPABILITY_EVENTS = "events"
 CAPABILITY_HANGUP = "hangup"
 CAPABILITY_TEST_CALL = "test_call"
@@ -24,11 +25,14 @@ REQUIRED_CAPABILITIES = frozenset(
     {
         CAPABILITY_CALL_STATUS,
         CAPABILITY_CALLER_NUMBER,
+        CAPABILITY_DTMF_EVENTS,
         CAPABILITY_EVENTS,
         CAPABILITY_HANGUP,
         CAPABILITY_TEST_CALL,
     }
 )
+
+EVENT_DTMF = f"{DOMAIN}_dtmf"
 
 STATUS_READY = "bereit"
 STATUS_INCOMING = "eingehend"
