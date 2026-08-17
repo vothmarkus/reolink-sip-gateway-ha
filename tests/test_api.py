@@ -230,6 +230,8 @@ def test_sse_status_and_dtmf_events(status_payload, dtmf_payload):
         assert snapshot.call.last_caller_number == "+4912345"
         assert dtmf.digit == "#"
         assert dtmf.duration_ms == 120
+        assert dtmf.remote_number == "**620"
+        assert dtmf.call_id == "call-123@example.org"
         assert dtmf.instance_id == "12345678-1234-5678-9234-567812345678"
         assert session.calls[0][2]["headers"]["Accept"] == "text/event-stream"
 

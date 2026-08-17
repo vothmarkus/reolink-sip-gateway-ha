@@ -67,7 +67,8 @@ class GatewayDTMFEvent:
     digit: str
     duration_ms: int
     call_direction: str
-    caller_number: str
+    remote_number: str
+    call_id: str
     received_at: datetime
     instance_id: str
 
@@ -89,6 +90,10 @@ class GatewayDTMFEvent:
         if call_direction not in {"incoming", "outgoing"}:
             raise InvalidPayloadError("call_direction must be incoming or outgoing")
 
+        call_id = _required_str(payload, "call_id")
+        if len(call_id) > 256:
+            raise InvalidPayloadError("call_id must not exceed 256 characters")
+
         instance_id = _required_str(payload, "instance_id")
         try:
             instance_id = str(UUID(instance_id))
@@ -100,7 +105,8 @@ class GatewayDTMFEvent:
             digit=digit,
             duration_ms=duration_ms,
             call_direction=call_direction,
-            caller_number=_required_string(payload, "caller_number"),
+            remote_number=_required_str(payload, "remote_number"),
+            call_id=call_id,
             received_at=_required_datetime(payload, "received_at"),
             instance_id=instance_id,
         )
@@ -111,7 +117,8 @@ class GatewayDTMFEvent:
             "digit": self.digit,
             "duration_ms": self.duration_ms,
             "call_direction": self.call_direction,
-            "caller_number": self.caller_number,
+            "remote_number": self.remote_number,
+            "call_id": self.call_id,
             "received_at": self.received_at.isoformat(),
             "instance_id": self.instance_id,
         }
@@ -311,13 +318,6 @@ def _required_str(payload: Mapping[str, Any], key: str) -> str:
     value = payload.get(key)
     if not isinstance(value, str) or not value:
         raise InvalidPayloadError(f"{key} must be a non-empty string")
-    return value
-
-
-def _required_string(payload: Mapping[str, Any], key: str) -> str:
-    value = payload.get(key)
-    if not isinstance(value, str):
-        raise InvalidPayloadError(f"{key} must be a string")
     return value
 
 

@@ -50,7 +50,8 @@ Seine Schnittstelle besteht ausschließlich aus folgenden Ereignisdaten:
 | `digit` | String | `0`–`9`, `*`, `#` oder `A`–`D` |
 | `duration_ms` | Integer | vom SIP-Endgerät gemeldete Tastendauer in Millisekunden |
 | `call_direction` | String | `incoming` oder `outgoing` |
-| `caller_number` | String | normalisierte Nummer bei eingehenden Anrufen; bei ausgehenden Anrufen leer |
+| `remote_number` | String | exakt normalisierte Gegenstelle: eingehender Anrufer oder konfiguriertes ausgehendes SIP-Ziel |
+| `call_id` | String | SIP-Dialog-ID zur sicheren Trennung mehrerer Anrufe |
 | `received_at` | String | Empfangszeitpunkt mit Zeitzone im ISO-8601-Format |
 | `instance_id` | String | dauerhafte Installations-ID des Gateways |
 
@@ -69,6 +70,11 @@ actions:
     target:
       entity_id: light.flur
 ```
+
+Für mehrere mehrstellige Codes, eine Bestätigung mit `#` und Rufnummernregeln
+pro Code kann die separate Integration
+[`DTMF Code`](https://github.com/vothmarkus/DTMF-Code-HA) dieses Rohereignis
+auswerten und pro Codeprofil eine eigene Ereignis-Entität bereitstellen.
 
 Nur ausgehandeltes Out-of-Band-DTMF (`telephone-event/8000`) wird erkannt;
 hörbare Töne im Audiosignal werden nicht ausgewertet. Das Ereignis ist bewusst

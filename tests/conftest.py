@@ -78,7 +78,8 @@ def dtmf_payload() -> dict[str, Any]:
         "digit": "#",
         "duration_ms": 120,
         "call_direction": "incoming",
-        "caller_number": "**620",
+        "remote_number": "**620",
+        "call_id": "call-123@example.org",
         "received_at": "2026-08-17T10:30:01Z",
         "instance_id": "12345678-1234-5678-9234-567812345678",
     }
