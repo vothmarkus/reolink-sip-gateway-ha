@@ -20,6 +20,7 @@ CAPABILITY_CALLER_NUMBER = "caller_number"
 CAPABILITY_DTMF_EVENTS = "dtmf_events"
 CAPABILITY_EVENTS = "events"
 CAPABILITY_HANGUP = "hangup"
+CAPABILITY_ROUTE_TEST_CALLS = "route_test_calls"
 CAPABILITY_TEST_CALL = "test_call"
 REQUIRED_CAPABILITIES = frozenset(
     {

@@ -1,8 +1,9 @@
 # Reolink SIP Gateway – Home-Assistant-Integration
 
 Diese benutzerdefinierte Integration bindet die lokale API der **Reolink SIP
-Gateway App** in Home Assistant ein. Sie zeigt Anrufzustand und anrufende Nummer
-an und stellt die beiden vereinbarten Bedienelemente **Testanruf** und
+Gateway App** in Home Assistant ein. Sie zeigt Anrufzustand, anrufende Nummer
+und die aktuelle beziehungsweise letzte Route an. Mit Gateway 1.2 stellt sie
+für jede vorhandene Anrufroute einen eigenen **Testanruf**-Button sowie einmal
 **Auflegen** bereit. Ab Version 1.0 übergibt sie empfangene DTMF-Tastendrücke als
 reine Home-Assistant-Ereignisse an Automationen.
 
@@ -11,7 +12,8 @@ reine Home-Assistant-Ereignisse an Automationen.
 
 ## Voraussetzungen
 
-- Reolink SIP Gateway App **1.0.0 oder neuer**
+- Reolink SIP Gateway App **1.0.0 oder neuer**; für Routenkatalog und mehrere
+  Testanruf-Buttons **1.2.0 oder neuer**
 - Home Assistant **2025.1 oder neuer**
 - Netzwerkzugriff von Home Assistant auf die lokale Gateway-API
 - Add-on-Hostname und Zugriffstoken von der Ingress-Seite der App
@@ -21,20 +23,28 @@ nutzt ausschließlich den versionierten Vertrag unter `/api/v1`.
 
 ## Entitäten
 
-Alle vier Entitäten gehören zu einem Gerät mit der dauerhaften Installations-ID
-des Gateways:
+Alle Entitäten gehören zu einem Gerät mit der dauerhaften Installations-ID des
+Gateways:
 
 | Entität | Aufgabe |
 | --- | --- |
 | `sensor.reolink_sip_gateway_status` | Zustände `bereit`, `eingehend`, `ausgehend`, `verbunden`, `fehler` |
 | `sensor.reolink_sip_gateway_anrufende_nummer` | Aktuelle oder zuletzt angenommene eingehende Nummer |
-| `button.reolink_sip_gateway_testanruf` | Ruft das in der App konfigurierte SIP-Ziel an |
+| `button.reolink_sip_gateway_testanruf_<route>` | Je ein Button pro Gateway-Route; ruft ausschließlich deren Tür-/Mobilziele an |
 | `button.reolink_sip_gateway_auflegen` | Beendet den aktiven ein- oder ausgehenden Anruf |
 
 Der Statussensor führt außerdem SIP-Registrierung, Anrufrichtung, laufende bzw.
-letzte Anrufdauer, Codec und letzte eingehende Nummer als Attribute. Die
-Auflegen-Schaltfläche ist nur während eines Anrufs verfügbar; der Testanruf nur,
-wenn das Gateway den Befehl annehmen kann.
+letzte Anrufdauer, Codec, aktuelle/letzte Routen-ID, Routennamen und letzte
+eingehende Nummer als Attribute. Die Auflegen-Schaltfläche ist nur während
+eines Anrufs verfügbar; jeder Testanruf nur, wenn mindestens ein von seiner
+Route verwendeter SIP-Weg registriert und der globale Anrufplatz frei ist.
+
+Die stabile Routen-ID bestimmt die dauerhafte Unique-ID des Testanruf-Buttons;
+der sichtbare Name stammt aus der App-Konfiguration. Neu hinzugefügte Routen
+erscheinen nach dem nächsten Statusupdate automatisch. Wird eine Route entfernt,
+bleibt eine bereits registrierte Entity sicherheitshalber unverfügbar, statt
+versehentlich eine andere Route anzurufen. Bei Gateways vor 1.2 bleibt der eine
+kompatible allgemeine Testanruf-Button erhalten.
 
 ## DTMF-Ereignis
 
@@ -95,7 +105,7 @@ Home-Assistant-Konfiguration kopiert werden.
 
 ## Einrichtung
 
-1. Die Reolink SIP Gateway App 1.0.0 starten.
+1. Die Reolink SIP Gateway App starten; für routenspezifische Buttons mindestens 1.2.0.
 2. Ihre Ingress-Seite öffnen und **Add-on-Hostname** sowie **Token** kopieren.
 3. In Home Assistant **Einstellungen → Geräte & Dienste → Integration
    hinzufügen** öffnen.

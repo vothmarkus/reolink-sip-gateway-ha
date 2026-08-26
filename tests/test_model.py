@@ -21,7 +21,7 @@ from custom_components.reolink_sip_gateway.model import (
 
 def test_info_validation(info_payload):
     info = GatewayInfo.from_payload(info_payload)
-    assert info.gateway_version == "1.0.0"
+    assert info.gateway_version == "1.2.0"
     assert info.instance_id == "12345678-1234-5678-9234-567812345678"
     assert "events" in info.capabilities
     assert "dtmf_events" in info.capabilities
@@ -84,6 +84,37 @@ def test_idle_status_and_retained_caller(status_payload):
     assert status.presentation_status == STATUS_READY
     assert status.caller_number == "+4912345"
     assert status.call.duration_seconds() == 65
+    assert [route.id for route in status.routes] == ["wohnung_1", "wohnung_2"]
+    assert status.route("wohnung_1").test_call_available is True
+    assert status.call.last_route_name == "Wohnung 1"
+
+
+def test_legacy_status_without_routes_remains_compatible(status_payload, copy_payload):
+    payload = copy_payload(status_payload)
+    payload.pop("routes")
+    payload["call"].pop("last_route_id")
+    payload["call"].pop("last_route_name")
+    status = GatewayStatus.from_payload(payload)
+    assert status.routes == ()
+    assert status.call.last_route_id is None
+
+
+@pytest.mark.parametrize(
+    "routes",
+    [
+        "not-an-array",
+        [{"id": "Wohnung-1", "name": "Wohnung 1", "test_call_available": True}],
+        [
+            {"id": "same", "name": "One", "test_call_available": True},
+            {"id": "same", "name": "Two", "test_call_available": False},
+        ],
+    ],
+)
+def test_route_catalog_rejects_invalid_payload(status_payload, copy_payload, routes):
+    payload = copy_payload(status_payload)
+    payload["routes"] = routes
+    with pytest.raises(InvalidPayloadError):
+        GatewayStatus.from_payload(payload)
 
 
 @pytest.mark.parametrize(

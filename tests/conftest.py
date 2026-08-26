@@ -13,7 +13,7 @@ def info_payload() -> dict[str, Any]:
     """Return a valid /info response."""
     return {
         "api_version": 1,
-        "gateway_version": "1.0.0",
+        "gateway_version": "1.2.0",
         "instance_id": "12345678-1234-5678-9234-567812345678",
         "name": "Reolink SIP Gateway",
         "capabilities": [
@@ -22,6 +22,7 @@ def info_payload() -> dict[str, Any]:
             "dtmf_events",
             "events",
             "hangup",
+            "route_test_calls",
             "test_call",
         ],
     }
@@ -35,7 +36,7 @@ def status_payload() -> dict[str, Any]:
         "revision": 7,
         "updated_at": "2026-08-17T10:30:00Z",
         "gateway": {
-            "version": "1.0.0",
+            "version": "1.2.0",
             "state": "idle",
             "started_at": "2026-08-17T09:00:00Z",
             "home_assistant_connected": True,
@@ -51,6 +52,8 @@ def status_payload() -> dict[str, Any]:
             "started_at": "2026-08-17T10:20:00Z",
             "ended_at": "2026-08-17T10:21:05Z",
             "codec": "pcma",
+            "last_route_id": "wohnung_1",
+            "last_route_name": "Wohnung 1",
         },
         "media": {
             "configured_reolink_mode": "nvr",
@@ -67,6 +70,10 @@ def status_payload() -> dict[str, Any]:
             "test_call_available": True,
             "hangup_available": False,
         },
+        "routes": [
+            {"id": "wohnung_1", "name": "Wohnung 1", "test_call_available": True},
+            {"id": "wohnung_2", "name": "Wohnung 2", "test_call_available": False},
+        ],
     }
 
 

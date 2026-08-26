@@ -58,6 +58,10 @@ class GatewayStatusSensor(GatewayEntity, SensorEntity):
             "duration_seconds": call.duration_seconds(),
             "codec": call.codec,
             "last_incoming_number": call.last_caller_number,
+            "route_id": call.route_id,
+            "route_name": call.route_name,
+            "last_route_id": call.last_route_id,
+            "last_route_name": call.last_route_name,
         }
         if data.gateway.last_error:
             attributes["last_error"] = data.gateway.last_error
