@@ -21,7 +21,7 @@ def test_manifest_and_hacs_metadata():
     manifest = json.loads((INTEGRATION / "manifest.json").read_text())
     hacs = json.loads((ROOT / "hacs.json").read_text())
     assert manifest["domain"] == "reolink_sip_gateway"
-    assert manifest["version"] == "1.0.0"
+    assert manifest["version"] == "1.2.0"
     assert manifest["config_flow"] is True
     assert manifest["iot_class"] == "local_push"
     assert hacs["name"] == manifest["name"]

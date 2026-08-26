@@ -56,6 +56,10 @@
           "duration_seconds": {"name": "Call duration (seconds)"},
           "codec": {"name": "Codec"},
           "last_incoming_number": {"name": "Last incoming number"},
+          "route_id": {"name": "Current route ID"},
+          "route_name": {"name": "Current route"},
+          "last_route_id": {"name": "Last route ID"},
+          "last_route_name": {"name": "Last route"},
           "last_error": {"name": "Last gateway error"},
           "last_registration_error": {"name": "Last SIP registration error"}
         }
@@ -70,6 +74,7 @@
     },
     "button": {
       "test_call": {"name": "Test call"},
+      "route_test_call": {"name": "Test call {route_name}"},
       "hangup": {"name": "Hang up"}
     }
   },
@@ -81,6 +86,7 @@
     "gateway_unavailable": {"message": "The gateway is not ready for this command."},
     "invalid_auth": {"message": "The gateway rejected the stored access token."},
     "invalid_response": {"message": "The gateway returned an invalid response."},
+    "route_not_found": {"message": "The selected call route no longer exists in the gateway."},
     "sip_unavailable": {"message": "SIP is not registered, so a test call cannot be started."}
   }
 }

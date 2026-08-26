@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -158,6 +159,10 @@ class CallState:
     started_at: datetime | None
     ended_at: datetime | None
     codec: str | None
+    route_id: str | None
+    route_name: str | None
+    last_route_id: str | None
+    last_route_name: str | None
 
     def duration_seconds(self, now: datetime | None = None) -> int | None:
         """Return current or most recently completed call duration."""
@@ -198,6 +203,15 @@ class Controls:
 
 
 @dataclass(frozen=True, slots=True)
+class RouteState:
+    """One configured call route exposed by gateway v1.2 or newer."""
+
+    id: str
+    name: str
+    test_call_available: bool
+
+
+@dataclass(frozen=True, slots=True)
 class GatewayStatus:
     """Complete immutable status snapshot."""
 
@@ -209,6 +223,7 @@ class GatewayStatus:
     call: CallState
     media: MediaState
     controls: Controls
+    routes: tuple[RouteState, ...]
 
     @classmethod
     def from_payload(cls, payload: Mapping[str, Any]) -> GatewayStatus:
@@ -253,6 +268,10 @@ class GatewayStatus:
                 started_at=_optional_datetime(call, "started_at"),
                 ended_at=_optional_datetime(call, "ended_at"),
                 codec=_optional_str(call, "codec"),
+                route_id=_optional_str(call, "route_id"),
+                route_name=_optional_str(call, "route_name"),
+                last_route_id=_optional_str(call, "last_route_id"),
+                last_route_name=_optional_str(call, "last_route_name"),
             ),
             media=MediaState(
                 configured_reolink_mode=_required_str(media, "configured_reolink_mode"),
@@ -272,6 +291,7 @@ class GatewayStatus:
                 test_call_available=_required_bool(controls, "test_call_available"),
                 hangup_available=_required_bool(controls, "hangup_available"),
             ),
+            routes=_route_states(payload),
         )
 
     @property
@@ -297,6 +317,10 @@ class GatewayStatus:
         """Return the current caller or retain the last incoming caller."""
         return self.call.caller_number or self.call.last_caller_number
 
+    def route(self, route_id: str) -> RouteState | None:
+        """Return the latest status for one stable route ID."""
+        return next((route for route in self.routes if route.id == route_id), None)
+
 
 def localized_direction(direction: str | None) -> str | None:
     """Return a stable German presentation value for call direction."""
@@ -305,6 +329,37 @@ def localized_direction(direction: str | None) -> str | None:
     if direction == "outgoing":
         return STATUS_OUTGOING
     return None
+
+
+_ROUTE_ID = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
+
+
+def _route_states(payload: Mapping[str, Any]) -> tuple[RouteState, ...]:
+    raw_routes = payload.get("routes", ())
+    if not isinstance(raw_routes, Sequence) or isinstance(raw_routes, (str, bytes)):
+        raise InvalidPayloadError("routes must be an array")
+    routes: list[RouteState] = []
+    seen: set[str] = set()
+    for index, raw_route in enumerate(raw_routes):
+        if not isinstance(raw_route, Mapping):
+            raise InvalidPayloadError(f"routes[{index}] must be an object")
+        route_id = _required_str(raw_route, "id")
+        if not _ROUTE_ID.fullmatch(route_id):
+            raise InvalidPayloadError(f"routes[{index}].id is invalid")
+        if route_id in seen:
+            raise InvalidPayloadError(f"routes contains duplicate id {route_id}")
+        seen.add(route_id)
+        name = _required_str(raw_route, "name")
+        if len(name) > 64:
+            raise InvalidPayloadError(f"routes[{index}].name is too long")
+        routes.append(
+            RouteState(
+                id=route_id,
+                name=name,
+                test_call_available=_required_bool(raw_route, "test_call_available"),
+            )
+        )
+    return tuple(routes)
 
 
 def _required_mapping(payload: Mapping[str, Any], key: str) -> Mapping[str, Any]:

@@ -7,7 +7,7 @@ import json
 import re
 from collections.abc import AsyncIterator, Mapping
 from typing import Any
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import quote, urlsplit, urlunsplit
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
 
@@ -85,9 +85,14 @@ class GatewayAPIClient:
             raise GatewayProtocolError(str(err)) from err
         return self._parse_status(payload)
 
-    async def async_start_test_call(self) -> None:
-        """Start a call to the destination configured in the app."""
-        await self._async_request_json("POST", "/calls/test", {202})
+    async def async_start_test_call(self, route_id: str | None = None) -> None:
+        """Start a call for one route, or use the legacy default route."""
+        path = "/calls/test"
+        if route_id is not None:
+            if not route_id:
+                raise ValueError("route_id must not be empty")
+            path = f"/routes/{quote(route_id, safe='')}/test"
+        await self._async_request_json("POST", path, {202})
 
     async def async_hangup(self) -> None:
         """End the active call; the endpoint is idempotent."""

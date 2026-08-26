@@ -146,7 +146,7 @@ def test_get_info_uses_bearer_token(info_payload):
         session = FakeSession(FakeResponse(200, info_payload))
         client = GatewayAPIClient(session, "http://ha.local:18099", "secret")
         info = await client.async_get_info()
-        assert info.gateway_version == "1.0.0"
+        assert info.gateway_version == "1.2.0"
         method, url, kwargs = session.calls[0]
         assert method == "GET"
         assert url == "http://ha.local:18099/api/v1/info"
@@ -183,6 +183,18 @@ def test_busy_test_call_preserves_gateway_error_code():
             await client.async_start_test_call()
         assert caught.value.code == "call_busy"
         assert caught.value.status == 409
+
+    asyncio.run(run_test())
+
+
+def test_route_test_call_uses_route_specific_endpoint():
+    async def run_test() -> None:
+        session = FakeSession(FakeResponse(202, {"status": "accepted"}))
+        client = GatewayAPIClient(session, "http://ha.local:18099", "secret")
+        await client.async_start_test_call("wohnung_1")
+        method, url, _ = session.calls[0]
+        assert method == "POST"
+        assert url == "http://ha.local:18099/api/v1/routes/wohnung_1/test"
 
     asyncio.run(run_test())
 

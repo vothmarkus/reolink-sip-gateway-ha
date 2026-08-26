@@ -56,6 +56,10 @@
           "duration_seconds": {"name": "Anrufdauer (Sekunden)"},
           "codec": {"name": "Codec"},
           "last_incoming_number": {"name": "Letzte anrufende Nummer"},
+          "route_id": {"name": "Aktuelle Routen-ID"},
+          "route_name": {"name": "Aktuelle Route"},
+          "last_route_id": {"name": "Letzte Routen-ID"},
+          "last_route_name": {"name": "Letzte Route"},
           "last_error": {"name": "Letzter Gateway-Fehler"},
           "last_registration_error": {"name": "Letzter SIP-Registrierungsfehler"}
         }
@@ -70,6 +74,7 @@
     },
     "button": {
       "test_call": {"name": "Testanruf"},
+      "route_test_call": {"name": "Testanruf {route_name}"},
       "hangup": {"name": "Auflegen"}
     }
   },
@@ -81,6 +86,7 @@
     "gateway_unavailable": {"message": "Das Gateway ist für diesen Befehl noch nicht bereit."},
     "invalid_auth": {"message": "Das Gateway hat das gespeicherte Zugriffstoken abgelehnt."},
     "invalid_response": {"message": "Das Gateway hat eine ungültige Antwort geliefert."},
+    "route_not_found": {"message": "Die ausgewählte Anrufroute ist im Gateway nicht mehr vorhanden."},
     "sip_unavailable": {"message": "SIP ist nicht registriert; deshalb kann kein Testanruf gestartet werden."}
   }
 }
