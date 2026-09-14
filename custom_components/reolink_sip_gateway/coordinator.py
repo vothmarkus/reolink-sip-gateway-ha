@@ -28,6 +28,8 @@ _RECONNECT_DELAYS = (1, 2, 5, 10, 30)
 class GatewayCoordinator(DataUpdateCoordinator[GatewayStatus]):
     """Combine immediate SSE updates with a conservative polling fallback."""
 
+    config_entry: ConfigEntry
+
     def __init__(
         self,
         hass: HomeAssistant,
@@ -60,7 +62,12 @@ class GatewayCoordinator(DataUpdateCoordinator[GatewayStatus]):
         """Start the event listener once platform setup is complete."""
         if self._event_task is None or self._event_task.done():
             self._stop_event.clear()
-            self._event_task = self.hass.async_create_task(self._event_loop())
+            # This stream runs for the entry's lifetime; a normal task blocks HA startup.
+            self._event_task = self.config_entry.async_create_background_task(
+                self.hass,
+                self._event_loop(),
+                name=f"{DOMAIN} events {self.config_entry.entry_id}",
+            )
 
     async def async_stop(self) -> None:
         """Stop the background event listener."""
