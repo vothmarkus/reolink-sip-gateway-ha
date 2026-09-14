@@ -127,6 +127,23 @@ nicht in die Echtzeit-Audioverarbeitung des Gateways ein. Status ist
 rekonstruierbar; ein während der Unterbrechung empfangener Tastendruck dagegen
 absichtlich nicht.
 
+### Startkorrektur in Integrationsversion 1.2.1
+
+Der dauerhafte Ereignisempfänger läuft als Hintergrundaufgabe des
+Integrationseintrags. Dadurch wartet Home Assistant beim Start nicht auf das
+Ende der SSE-Verbindung. Beim Entladen oder Herunterfahren wird die Aufgabe
+automatisch abgebrochen; beim Neuladen entsteht keine doppelte Verbindung.
+
+Dies behebt die Startwarnung **„Something is blocking Home Assistant from
+wrapping up the start up phase“**, wenn als wartende Aufgabe
+`GatewayCoordinator._event_loop()` genannt wird. Statusmeldungen, DTMF,
+Testanrufe und der Polling-Fallback bleiben erhalten.
+
+Zum Aktualisieren die Integration in HACS aktualisieren beziehungsweise
+**erneut herunterladen** und anschließend Home Assistant neu starten. Die
+bestehende Einrichtung bleibt erhalten; für diese Korrektur ist kein Update
+der separaten Gateway-App erforderlich.
+
 ## Sicherheit
 
 - Jeder API-Aufruf verwendet das 256-Bit-Bearer-Token der App.
